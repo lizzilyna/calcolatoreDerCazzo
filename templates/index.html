@@ -1,0 +1,868 @@
+<!-- <!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Calcolatore Certificati Knock-Out</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    font-size: 0.8rem;
+    padding: 5px;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .main-container {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+  .cert-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    padding: 12px;
+    height: calc(100vh - 20px);
+    overflow-y: auto;
+  }
+  .cert-title {
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+  }
+  .compact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+  .form-group label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .form-control, .form-select {
+    font-size: 0.75rem;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+  }
+  .wide2 {
+    grid-column: span 2;
+  }
+  .wide3 {
+    grid-column: span 3;
+  }
+  .btn-calc {
+    background: #0d6efd;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .results {
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 10px;
+    border-left: 3px solid #0d6efd;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+  .result-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .result-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    padding: 2px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .profit { color: #198754; font-weight: bold; }
+  .loss { color: #dc3545; font-weight: bold; }
+  .highlight {
+    background: #e7f3ff;
+    padding: 6px;
+    border-radius: 4px;
+    margin: 4px 0;
+  }
+  .big-result {
+    font-size: 0.9rem;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+  <div class="container-fluid main-container">
+    <div class="row h-100">
+      <div class="col-6">
+        <div class="cert-card">
+          <div class="cert-title">📈 Certificato 1</div>
+          <form method="post">
+            <div class="compact-grid">
+              <div class="form-group">
+                <label>Prezzo iniziale</label>
+                <input type="number" step="0.001" name="prezzo_iniziale" class="form-control" 
+                       value="{{ request.form.get('prezzo_iniziale', '260.000') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Tipo input</label>
+                <select name="tipo_input" class="form-select" onchange="toggleInput(1, this.value)">
+                  <option value="prezzo" {{ 'selected' if request.form.get('tipo_input') == 'prezzo' else '' }}>Prezzo finale</option>
+                  <option value="percentuale" {{ 'selected' if request.form.get('tipo_input') == 'percentuale' else '' }}>Variazione %</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label id="label_variazione_1">
+                  {% if request.form.get('tipo_input') == 'percentuale' %}Variazione %{% else %}Prezzo finale{% endif %}
+                </label>
+                <input type="number" step="0.001" name="valore_finale" id="input_finale_1" class="form-control" 
+                       value="{{ request.form.get('valore_finale', '270.000') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Tipo</label>
+                <select name="tipo" class="form-select" required>
+                  <option value="long" {{ 'selected' if request.form.get('tipo') == 'long' else '' }}>Long</option>
+                  <option value="short" {{ 'selected' if request.form.get('tipo') == 'short' else '' }}>Short</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Leva</label>
+                <input type="number" step="0.001" name="leva" class="form-control" 
+                       value="{{ request.form.get('leva', '5.000') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Barriera KO</label>
+                <input type="number" step="0.001" name="barriera_ko" class="form-control" 
+                       value="{{ request.form.get('barriera_ko', '230.000') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Quantità</label>
+                <input type="number" name="quantita" class="form-control" 
+                       value="{{ request.form.get('quantita', '5') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Prezzo pagato</label>
+                <input type="number" step="0.001" name="prezzo_pagato" class="form-control" 
+                       value="{{ request.form.get('prezzo_pagato', '4.500') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Commissioni</label>
+                <input type="number" step="0.001" name="commissioni" class="form-control" 
+                       value="{{ request.form.get('commissioni', '2.000') }}">
+              </div>
+              
+              <div class="form-group wide3">
+                <label>Tasse sui guadagni (%)</label>
+                <input type="number" step="0.01" name="tasse" class="form-control" 
+                       value="{{ request.form.get('tasse', '26.00') }}">
+              </div>
+            </div>
+            
+            <input type="hidden" name="form_submitted" value="1">
+            <button type="submit" name="submit1" class="btn-calc">Calcola</button>
+          </form>
+
+          {% if result1 %}
+          <div class="results">
+            <div class="result-title">Risultati</div>
+            {% if result1.errore %}
+              <div class="text-danger">{{ result1.errore }}</div>
+            {% else %}
+              <div class="result-line">
+                <span>Movimento sottostante:</span>
+                <span class="{% if result1.variazione_percent >= 0 %}profit{% else %}loss{% endif %}">{{ result1.variazione_percent }}%</span>
+              </div>
+              <div class="result-line">
+                <span>{{ result1.tipo }} {{ result1.leva }}X:</span>
+                <span>{% if result1.ko_attivato %}<span class="loss">KO!</span>{% else %}<span class="profit">OK</span>{% endif %}</span>
+              </div>
+              <div class="result-line">
+                <span>Prezzo cert. teorico:</span>
+                <span>€{{ result1.prezzo_cert_teorico }}</span>
+              </div>
+              <div class="result-line">
+                <span>Investimento:</span>
+                <span>€{{ result1.investimento_totale }}</span>
+              </div>
+              <div class="result-line">
+                <span>Valore attuale:</span>
+                <span>€{{ result1.valore_attuale }}</span>
+              </div>
+              <div class="result-line">
+                <span>Commissioni:</span>
+                <span>-€{{ result1.commissioni }}</span>
+              </div>
+              {% if result1.tasse_pagate > 0 %}
+              <div class="result-line">
+                <span>Tasse:</span>
+                <span>-€{{ result1.tasse_pagate }}</span>
+              </div>
+              {% endif %}
+              
+              <div class="highlight">
+                <div class="result-line big-result">
+                  <span>💰 GUADAGNO NETTO:</span>
+                  <span class="{% if result1.guadagno_netto >= 0 %}profit{% else %}loss{% endif %}">€{{ result1.guadagno_netto }}</span>
+                </div>
+                <div class="result-line">
+                  <span>Rendimento:</span>
+                  <span class="{% if result1.rendimento_percent >= 0 %}profit{% else %}loss{% endif %}">{{ result1.rendimento_percent }}%</span>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-6">
+        <div class="cert-card">
+          <div class="cert-title">📉 Certificato 2</div>
+          <form method="post">
+            <div class="compact-grid">
+              <div class="form-group">
+                <label>Prezzo iniziale</label>
+                <input type="number" step="0.001" name="2_prezzo_iniziale" class="form-control" 
+                       value="{{ request.form.get('2_prezzo_iniziale', '260.000') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Tipo input</label>
+                <select name="2_tipo_input" class="form-select" onchange="toggleInput(2, this.value)">
+                  <option value="prezzo" {{ 'selected' if request.form.get('2_tipo_input') == 'prezzo' else '' }}>Prezzo finale</option>
+                  <option value="percentuale" {{ 'selected' if request.form.get('2_tipo_input') == 'percentuale' else '' }}>Variazione %</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label id="label_variazione_2">
+                  {% if request.form.get('2_tipo_input') == 'percentuale' %}Variazione %{% else %}Prezzo finale{% endif %}
+                </label>
+                <input type="number" step="0.001" name="2_valore_finale" id="input_finale_2" class="form-control" 
+                       value="{{ request.form.get('2_valore_finale', '250.000') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Tipo</label>
+                <select name="2_tipo" class="form-select" required>
+                  <option value="long" {{ 'selected' if request.form.get('2_tipo') == 'long' else '' }}>Long</option>
+                  <option value="short" {{ 'selected' if request.form.get('2_tipo', 'short') == 'short' else '' }}>Short</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Leva</label>
+                <input type="number" step="0.001" name="2_leva" class="form-control" 
+                       value="{{ request.form.get('2_leva', '5.000') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Barriera KO</label>
+                <input type="number" step="0.001" name="2_barriera_ko" class="form-control" 
+                       value="{{ request.form.get('2_barriera_ko', '290.000') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Quantità</label>
+                <input type="number" name="2_quantita" class="form-control" 
+                       value="{{ request.form.get('2_quantita', '10') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Prezzo pagato</label>
+                <input type="number" step="0.001" name="2_prezzo_pagato" class="form-control" 
+                       value="{{ request.form.get('2_prezzo_pagato', '3.200') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Commissioni</label>
+                <input type="number" step="0.001" name="2_commissioni" class="form-control" 
+                       value="{{ request.form.get('2_commissioni', '2.000') }}">
+              </div>
+              
+              <div class="form-group wide3">
+                <label>Tasse sui guadagni (%)</label>
+                <input type="number" step="0.01" name="2_tasse" class="form-control" 
+                       value="{{ request.form.get('2_tasse', '26') }}">
+              </div>
+            </div>
+            
+            <input type="hidden" name="form_submitted" value="2">
+            <button type="submit" name="submit2" class="btn-calc">Calcola</button>
+          </form>
+
+          {% if result2 %}
+          <div class="results">
+            <div class="result-title">Risultati</div>
+            {% if result2.errore %}
+              <div class="text-danger">{{ result2.errore }}</div>
+            {% else %}
+              <div class="result-line">
+                <span>Movimento sottostante:</span>
+                <span class="{% if result2.variazione_percent >= 0 %}profit{% else %}loss{% endif %}">{{ result2.variazione_percent }}%</span>
+              </div>
+              <div class="result-line">
+                <span>{{ result2.tipo }} {{ result2.leva }}X:</span>
+                <span>{% if result2.ko_attivato %}<span class="loss">KO!</span>{% else %}<span class="profit">OK</span>{% endif %}</span>
+              </div>
+              <div class="result-line">
+                <span>Prezzo cert. teorico:</span>
+                <span>€{{ result2.prezzo_cert_teorico }}</span>
+              </div>
+              <div class="result-line">
+                <span>Investimento:</span>
+                <span>€{{ result2.investimento_totale }}</span>
+              </div>
+              <div class="result-line">
+                <span>Valore attuale:</span>
+                <span>€{{ result2.valore_attuale }}</span>
+              </div>
+              <div class="result-line">
+                <span>Commissioni:</span>
+                <span>-€{{ result2.commissioni }}</span>
+              </div>
+              {% if result2.tasse_pagate > 0 %}
+              <div class="result-line">
+                <span>Tasse:</span>
+                <span>-€{{ result2.tasse_pagate }}</span>
+              </div>
+              {% endif %}
+              
+              <div class="highlight">
+                <div class="result-line big-result">
+                  <span>💰 GUADAGNO NETTO:</span>
+                  <span class="{% if result2.guadagno_netto >= 0 %}profit{% else %}loss{% endif %}">€{{ result2.guadagno_netto }}</span>
+                </div>
+                <div class="result-line">
+                  <span>Rendimento:</span>
+                  <span class="{% if result2.rendimento_percent >= 0 %}profit{% else %}loss{% endif %}">{{ result2.rendimento_percent }}%</span>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleInput(certNum, tipo) {
+      const label = document.getElementById(`label_variazione_${certNum}`);
+      const input = document.getElementById(`input_finale_${certNum}`);
+      
+      if (tipo === 'percentuale') {
+        label.textContent = 'Variazione %';
+        input.placeholder = 'es: 3.850 per +3.850%';
+        input.step = '0.001';
+      } else {
+        label.textContent = 'Prezzo finale';
+        input.placeholder = 'Prezzo finale asset';
+        input.step = '0.001';
+      }
+    }
+
+    // Ripristina lo stato corretto dei campi al caricamento della pagina
+    document.addEventListener('DOMContentLoaded', function() {
+      const tipoInput1 = document.querySelector('select[name="tipo_input"]').value;
+      const tipoInput2 = document.querySelector('select[name="2_tipo_input"]').value;
+      
+      toggleInput(1, tipoInput1);
+      toggleInput(2, tipoInput2);
+    });
+  </script>
+</body>
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Calcolatore Certificati Knock-Out</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    font-size: 0.8rem;
+    padding: 5px;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .main-container {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+  .cert-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    padding: 12px;
+    height: calc(100vh - 20px);
+    overflow-y: auto;
+  }
+  .cert-title {
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+  }
+  .compact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+  .form-group label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .form-control, .form-select {
+    font-size: 0.75rem;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+  }
+  .wide2 {
+    grid-column: span 2;
+  }
+  .wide3 {
+    grid-column: span 3;
+  }
+  .btn-calc {
+    background: #0d6efd;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .results {
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 10px;
+    border-left: 3px solid #0d6efd;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+  .result-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .result-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    padding: 2px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .profit { color: #198754; font-weight: bold; }
+  .loss { color: #dc3545; font-weight: bold; }
+  .highlight {
+    background: #e7f3ff;
+    padding: 6px;
+    border-radius: 4px;
+    margin: 4px 0;
+  }
+  .big-result {
+    font-size: 0.9rem;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+  <div class="container-fluid main-container">
+    <div class="row h-100">
+      <div class="col-6">
+        <div class="cert-card">
+          <div class="cert-title">📈 Certificato 1</div>
+          <form method="post">
+            <div class="compact-grid">
+              <div class="form-group">
+                <label>Prezzo iniziale</label>
+                <input type="number" step="0.001" name="prezzo_iniziale" class="form-control" 
+                       value="{{ request.form.get('prezzo_iniziale', '260.000') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Tipo input</label>
+                <select name="tipo_input" class="form-select" onchange="toggleInput(1, this.value)">
+                  <option value="prezzo" {{ 'selected' if request.form.get('tipo_input') == 'prezzo' else '' }}>Prezzo finale</option>
+                  <option value="percentuale" {{ 'selected' if request.form.get('tipo_input') == 'percentuale' else '' }}>Variazione %</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label id="label_variazione_1">
+                  {% if request.form.get('tipo_input') == 'percentuale' %}Variazione %{% else %}Prezzo finale{% endif %}
+                </label>
+                <input type="number" step="0.001" name="valore_finale" id="input_finale_1" class="form-control" 
+                       value="{{ request.form.get('valore_finale', '270.000') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Tipo</label>
+                <select name="tipo" class="form-select" required>
+                  <option value="long" {{ 'selected' if request.form.get('tipo') == 'long' else '' }}>Long</option>
+                  <option value="short" {{ 'selected' if request.form.get('tipo') == 'short' else '' }}>Short</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Leva</label>
+                <input type="number" step="0.001" name="leva" class="form-control" 
+                       value="{{ request.form.get('leva', '5.000') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Barriera KO</label>
+                <input type="number" step="0.001" name="barriera_ko" class="form-control" 
+                       value="{{ request.form.get('barriera_ko', '230.000') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Tasso cambio</label>
+                <input type="number" step="0.001" name="tasso_cambio" class="form-control" 
+                       value="{{ request.form.get('tasso_cambio', '1.000') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Ratio certificato</label>
+                <input type="number" step="0.001" name="ratio" class="form-control" 
+                       value="{{ request.form.get('ratio', '0.100') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Tipo acquisto</label>
+                <select name="tipo_acquisto" class="form-select" onchange="toggleAcquisto(1, this.value)">
+                  <option value="prezzo_cert" {{ 'selected' if request.form.get('tipo_acquisto') == 'prezzo_cert' else '' }}>Ho prezzo certificato</option>
+                  <option value="prezzo_sotto" {{ 'selected' if request.form.get('tipo_acquisto') == 'prezzo_sotto' else '' }}>Ho prezzo sottostante</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label id="label_acquisto_1">
+                  {% if request.form.get('tipo_acquisto') == 'prezzo_sotto' %}Prezzo sottostante{% else %}Prezzo certificato{% endif %}
+                </label>
+                <input type="number" step="0.001" name="valore_acquisto" id="input_acquisto_1" class="form-control" 
+                       value="{{ request.form.get('valore_acquisto', '4.500') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Quantità</label>
+                <input type="number" name="quantita" class="form-control" 
+                       value="{{ request.form.get('quantita', '5') }}" required>
+              </div>
+              <div class="form-group wide2">
+                <label>Commissioni</label>
+                <input type="number" step="0.001" name="commissioni" class="form-control" 
+                       value="{{ request.form.get('commissioni', '2.000') }}">
+              </div>
+              
+              <div class="form-group wide3">
+                <label>Tasse sui guadagni (%)</label>
+                <input type="number" step="0.01" name="tasse" class="form-control" 
+                       value="{{ request.form.get('tasse', '26.00') }}">
+              </div>
+            </div>
+            
+            <input type="hidden" name="form_submitted" value="1">
+            <button type="submit" name="submit1" class="btn-calc">Calcola</button>
+          </form>
+
+          {% if result1 %}
+          <div class="results">
+            <div class="result-title">Risultati</div>
+            {% if result1.errore %}
+              <div class="text-danger">{{ result1.errore }}</div>
+            {% else %}
+              <div class="result-line">
+                <span>Movimento sottostante:</span>
+                <span class="{% if result1.variazione_percent >= 0 %}profit{% else %}loss{% endif %}">{{ result1.variazione_percent }}%</span>
+              </div>
+              <div class="result-line">
+                <span>{{ result1.tipo }} Multiplo {{ result1.multiplo }}:</span>
+                <span>{% if result1.ko_attivato %}<span class="loss">KO!</span>{% else %}<span class="profit">OK</span>{% endif %}</span>
+              </div>
+              <div class="result-line">
+                <span>Strike (=Barriera):</span>
+                <span>€{{ result1.strike }}</span>
+              </div>
+              <div class="result-line">
+                <span>Leva dinamica:</span>
+                <span>{{ result1.leva_dinamica }}x</span>
+              </div>
+              <div class="result-line">
+                <span>Prezzo sottostante acquisto:</span>
+                <span>€{{ result1.prezzo_sotto_acquisto }}</span>
+              </div>
+              <div class="result-line">
+                <span>Prezzo certificato acquisto:</span>
+                <span>€{{ result1.prezzo_cert_acquisto }}</span>
+              </div>
+              <div class="result-line">
+                <span>Prezzo cert. teorico:</span>
+                <span>€{{ result1.prezzo_cert_teorico }}</span>
+              </div>
+              <div class="result-line">
+                <span>Investimento:</span>
+                <span>€{{ result1.investimento_totale }}</span>
+              </div>
+              <div class="result-line">
+                <span>Valore attuale:</span>
+                <span>€{{ result1.valore_attuale }}</span>
+              </div>
+              <div class="result-line">
+                <span>Commissioni:</span>
+                <span>-€{{ result1.commissioni }}</span>
+              </div>
+              {% if result1.tasse_pagate > 0 %}
+              <div class="result-line">
+                <span>Tasse:</span>
+                <span>-€{{ result1.tasse_pagate }}</span>
+              </div>
+              {% endif %}
+              
+              <div class="highlight">
+                <div class="result-line big-result">
+                  <span>💰 GUADAGNO NETTO:</span>
+                  <span class="{% if result1.guadagno_netto >= 0 %}profit{% else %}loss{% endif %}">€{{ result1.guadagno_netto }}</span>
+                </div>
+                <div class="result-line">
+                  <span>Rendimento:</span>
+                  <span class="{% if result1.rendimento_percent >= 0 %}profit{% else %}loss{% endif %}">{{ result1.rendimento_percent }}%</span>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-6">
+        <div class="cert-card">
+          <div class="cert-title">📉 Certificato 2</div>
+          <form method="post">
+            <div class="compact-grid">
+              <div class="form-group">
+                <label>Prezzo iniziale</label>
+                <input type="number" step="0.001" name="2_prezzo_iniziale" class="form-control" 
+                       value="{{ request.form.get('2_prezzo_iniziale', '260.000') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Tipo input</label>
+                <select name="2_tipo_input" class="form-select" onchange="toggleInput(2, this.value)">
+                  <option value="prezzo" {{ 'selected' if request.form.get('2_tipo_input') == 'prezzo' else '' }}>Prezzo finale</option>
+                  <option value="percentuale" {{ 'selected' if request.form.get('2_tipo_input') == 'percentuale' else '' }}>Variazione %</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label id="label_variazione_2">
+                  {% if request.form.get('2_tipo_input') == 'percentuale' %}Variazione %{% else %}Prezzo finale{% endif %}
+                </label>
+                <input type="number" step="0.001" name="2_valore_finale" id="input_finale_2" class="form-control" 
+                       value="{{ request.form.get('2_valore_finale', '250.000') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Tipo</label>
+                <select name="2_tipo" class="form-select" required>
+                  <option value="long" {{ 'selected' if request.form.get('2_tipo') == 'long' else '' }}>Long</option>
+                  <option value="short" {{ 'selected' if request.form.get('2_tipo', 'short') == 'short' else '' }}>Short</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Leva</label>
+                <input type="number" step="0.001" name="2_leva" class="form-control" 
+                       value="{{ request.form.get('2_leva', '5.000') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Barriera KO</label>
+                <input type="number" step="0.001" name="2_barriera_ko" class="form-control" 
+                       value="{{ request.form.get('2_barriera_ko', '290.000') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Tasso cambio</label>
+                <input type="number" step="0.001" name="2_tasso_cambio" class="form-control" 
+                       value="{{ request.form.get('2_tasso_cambio', '1.000') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Ratio certificato</label>
+                <input type="number" step="0.001" name="2_ratio" class="form-control" 
+                       value="{{ request.form.get('2_ratio', '0.100') }}" required>
+              </div>
+              <div class="form-group">
+                <label>Tipo acquisto</label>
+                <select name="2_tipo_acquisto" class="form-select" onchange="toggleAcquisto(2, this.value)">
+                  <option value="prezzo_cert" {{ 'selected' if request.form.get('2_tipo_acquisto') == 'prezzo_cert' else '' }}>Ho prezzo certificato</option>
+                  <option value="prezzo_sotto" {{ 'selected' if request.form.get('2_tipo_acquisto') == 'prezzo_sotto' else '' }}>Ho prezzo sottostante</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label id="label_acquisto_2">
+                  {% if request.form.get('2_tipo_acquisto') == 'prezzo_sotto' %}Prezzo sottostante{% else %}Prezzo certificato{% endif %}
+                </label>
+                <input type="number" step="0.001" name="2_valore_acquisto" id="input_acquisto_2" class="form-control" 
+                       value="{{ request.form.get('2_valore_acquisto', '3.200') }}" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Quantità</label>
+                <input type="number" name="2_quantita" class="form-control" 
+                       value="{{ request.form.get('2_quantita', '10') }}" required>
+              </div>
+              <div class="form-group wide2">
+                <label>Commissioni</label>
+                <input type="number" step="0.001" name="2_commissioni" class="form-control" 
+                       value="{{ request.form.get('2_commissioni', '2.000') }}">
+              </div>
+              
+              <div class="form-group wide3">
+                <label>Tasse sui guadagni (%)</label>
+                <input type="number" step="0.01" name="2_tasse" class="form-control" 
+                       value="{{ request.form.get('2_tasse', '26') }}">
+              </div>
+            </div>
+            
+            <input type="hidden" name="form_submitted" value="2">
+            <button type="submit" name="submit2" class="btn-calc">Calcola</button>
+          </form>
+
+          {% if result2 %}
+          <div class="results">
+            <div class="result-title">Risultati</div>
+            {% if result2.errore %}
+              <div class="text-danger">{{ result2.errore }}</div>
+            {% else %}
+              <div class="result-line">
+                <span>Movimento sottostante:</span>
+                <span class="{% if result2.variazione_percent >= 0 %}profit{% else %}loss{% endif %}">{{ result2.variazione_percent }}%</span>
+              </div>
+              <div class="result-line">
+                <span>{{ result2.tipo }} Multiplo {{ result2.multiplo }}:</span>
+                <span>{% if result2.ko_attivato %}<span class="loss">KO!</span>{% else %}<span class="profit">OK</span>{% endif %}</span>
+              </div>
+              <div class="result-line">
+                <span>Strike (=Barriera):</span>
+                <span>€{{ result2.strike }}</span>
+              </div>
+              <div class="result-line">
+                <span>Leva dinamica:</span>
+                <span>{{ result2.leva_dinamica }}x</span>
+              </div>
+              <div class="result-line">
+                <span>Prezzo sottostante acquisto:</span>
+                <span>€{{ result2.prezzo_sotto_acquisto }}</span>
+              </div>
+              <div class="result-line">
+                <span>Prezzo certificato acquisto:</span>
+                <span>€{{ result2.prezzo_cert_acquisto }}</span>
+              </div>
+              <div class="result-line">
+                <span>Prezzo cert. teorico:</span>
+                <span>€{{ result2.prezzo_cert_teorico }}</span>
+              </div>
+              <div class="result-line">
+                <span>Investimento:</span>
+                <span>€{{ result2.investimento_totale }}</span>
+              </div>
+              <div class="result-line">
+                <span>Valore attuale:</span>
+                <span>€{{ result2.valore_attuale }}</span>
+              </div>
+              <div class="result-line">
+                <span>Commissioni:</span>
+                <span>-€{{ result2.commissioni }}</span>
+              </div>
+              {% if result2.tasse_pagate > 0 %}
+              <div class="result-line">
+                <span>Tasse:</span>
+                <span>-€{{ result2.tasse_pagate }}</span>
+              </div>
+              {% endif %}
+              
+              <div class="highlight">
+                <div class="result-line big-result">
+                  <span>💰 GUADAGNO NETTO:</span>
+                  <span class="{% if result2.guadagno_netto >= 0 %}profit{% else %}loss{% endif %}">€{{ result2.guadagno_netto }}</span>
+                </div>
+                <div class="result-line">
+                  <span>Rendimento:</span>
+                  <span class="{% if result2.rendimento_percent >= 0 %}profit{% else %}loss{% endif %}">{{ result2.rendimento_percent }}%</span>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleInput(certNum, tipo) {
+      const label = document.getElementById(`label_variazione_${certNum}`);
+      const input = document.getElementById(`input_finale_${certNum}`);
+      
+      if (tipo === 'percentuale') {
+        label.textContent = 'Variazione %';
+        input.placeholder = 'es: 3.850 per +3.850%';
+        input.step = '0.001';
+      } else {
+        label.textContent = 'Prezzo finale';
+        input.placeholder = 'Prezzo finale asset';
+        input.step = '0.001';
+      }
+    }
+
+    function toggleAcquisto(certNum, tipo) {
+      const label = document.getElementById(`label_acquisto_${certNum}`);
+      const input = document.getElementById(`input_acquisto_${certNum}`);
+      
+      if (tipo === 'prezzo_sotto') {
+        label.textContent = 'Prezzo sottostante';
+        input.placeholder = 'Prezzo sottostante all\'acquisto';
+      } else {
+        label.textContent = 'Prezzo certificato';
+        input.placeholder = 'Prezzo pagato per certificato';
+      }
+    }
+
+    // Ripristina lo stato corretto dei campi al caricamento della pagina
+    document.addEventListener('DOMContentLoaded', function() {
+      const tipoInput1 = document.querySelector('select[name="tipo_input"]').value;
+      const tipoInput2 = document.querySelector('select[name="2_tipo_input"]').value;
+      const tipoAcquisto1 = document.querySelector('select[name="tipo_acquisto"]').value;
+      const tipoAcquisto2 = document.querySelector('select[name="2_tipo_acquisto"]').value;
+      
+      toggleInput(1, tipoInput1);
+      toggleInput(2, tipoInput2);
+      toggleAcquisto(1, tipoAcquisto1);
+      toggleAcquisto(2, tipoAcquisto2);
+    });
+  </script>
+</body>
+</html>
